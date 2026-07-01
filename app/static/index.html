@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alemeno AI Transaction Processing Pipeline</title>
+    <!-- Times New Roman Font Setup -->
+    <link rel="stylesheet" href="/static/style.css">
+    <!-- Chart.js for data visualization -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Lucide Icons for premium look -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="header-logo">
+                <i data-lucide="shield-check" class="logo-icon"></i>
+                <div>
+                    <h1>Alemeno Transaction Processing</h1>
+                    <p class="subtitle">AI-Powered Cleaning, Outlier Detection & Classification Pipeline</p>
+                </div>
+            </div>
+            <div class="header-actions">
+                <button id="theme-toggle" class="btn btn-secondary btn-icon" title="Toggle Theme">
+                    <i data-lucide="moon" id="theme-icon"></i>
+                    <span id="theme-text">Dark Mode</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Workspace -->
+        <main class="app-main">
+            <!-- Left Panel: Upload & Jobs List -->
+            <section class="panel panel-left">
+                <!-- CSV Upload Card -->
+                <div class="card upload-card">
+                    <div class="card-header">
+                        <i data-lucide="upload-cloud" class="card-icon"></i>
+                        <h2>Upload Transaction CSV</h2>
+                    </div>
+                    <div class="card-body">
+                        <form id="upload-form">
+                            <div class="drop-zone" id="drop-zone">
+                                <span class="drop-zone__prompt">Drag & drop transactions.csv here or click to browse</span>
+                                <input type="file" name="file" id="file-input" class="drop-zone__input" accept=".csv" required>
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-block" id="upload-btn">
+                                <i data-lucide="play" class="btn-icon-left"></i>
+                                Start Processing Pipeline
+                            </button>
+                        </form>
+                        <div id="upload-status" class="alert-info hidden"></div>
+                    </div>
+                </div>
+
+                <!-- Jobs History Card -->
+                <div class="card history-card">
+                    <div class="card-header">
+                        <i data-lucide="history" class="card-icon"></i>
+                        <h2>Pipeline Jobs History</h2>
+                        <button id="refresh-jobs" class="btn btn-secondary btn-sm btn-icon-only" title="Refresh Job List">
+                            <i data-lucide="rotate-cw"></i>
+                        </button>
+                    </div>
+                    <div class="card-body scrollable-y">
+                        <div class="filter-bar">
+                            <label for="status-filter">Filter Status:</label>
+                            <select id="status-filter" class="form-select">
+                                <option value="">All Jobs</option>
+                                <option value="pending">Pending</option>
+                                <option value="processing">Processing</option>
+                                <option value="completed">Completed</option>
+                                <option value="failed">Failed</option>
+                            </select>
+                        </div>
+                        <div id="jobs-list" class="jobs-list">
+                            <!-- Dynamically loaded jobs -->
+                            <div class="loading-placeholder">Loading jobs history...</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Right Panel: Results & Analysis -->
+            <section class="panel panel-right">
+                <!-- No Job Selected Placeholder -->
+                <div id="results-placeholder" class="card placeholder-card">
+                    <div class="card-body centered">
+                        <i data-lucide="bar-chart-2" class="large-icon animate-pulse"></i>
+                        <h3>No Job Selected</h3>
+                        <p>Upload a new CSV file or select a job from the history panel to view detailed AI analysis.</p>
+                    </div>
+                </div>
+
+                <!-- Active Job Loading / Processing State -->
+                <div id="results-loading" class="card placeholder-card hidden">
+                    <div class="card-body centered">
+                        <div class="spinner"></div>
+                        <h3 id="loading-title">Processing Pipeline Active</h3>
+                        <p id="loading-desc">Executing cleaning steps, checking outliers, and communicating with Gemini LLM...</p>
+                        <div class="progress-bar-container">
+                            <div class="progress-bar-fill" id="job-progress-fill"></div>
+                        </div>
+                        <div class="job-meta-mini" id="loading-meta"></div>
+                    </div>
+                </div>
+
+                <!-- Results Dashboard View -->
+                <div id="results-dashboard" class="results-dashboard hidden">
+                    <!-- Row 1: Metrics Badges -->
+                    <div class="metrics-grid">
+                        <div class="metric-card">
+                            <span class="metric-label">Filename</span>
+                            <span class="metric-value text-truncate" id="meta-filename">-</span>
+                        </div>
+                        <div class="metric-card">
+                            <span class="metric-label">Clean / Raw Rows</span>
+                            <span class="metric-value" id="meta-rows">-</span>
+                        </div>
+                        <div class="metric-card accent-inr">
+                            <span class="metric-label">Total Spend (INR)</span>
+                            <span class="metric-value" id="meta-spend-inr">₹0.00</span>
+                        </div>
+                        <div class="metric-card accent-usd">
+                            <span class="metric-label">Total Spend (USD)</span>
+                            <span class="metric-value" id="meta-spend-usd">$0.00</span>
+                        </div>
+                    </div>
+
+                    <!-- Row 2: LLM Insights & Narrative -->
+                    <div class="insights-grid">
+                        <!-- Narrative card -->
+                        <div class="card narrative-card" id="narrative-card">
+                            <div class="card-header">
+                                <i data-lucide="sparkles" class="card-icon text-accent"></i>
+                                <h2>Gemini AI Executive Summary</h2>
+                                <span class="badge" id="risk-badge">-</span>
+                            </div>
+                            <div class="card-body">
+                                <blockquote class="narrative-text" id="summary-narrative">
+                                    "Waiting for AI narrative analysis..."
+                                </blockquote>
+                                <div class="top-merchants-box">
+                                    <h3><i data-lucide="award" class="sub-icon"></i> Top Merchants by Spend</h3>
+                                    <div class="merchants-tags" id="top-merchants-list">
+                                        <!-- Dynamically generated tags -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Spend Chart card -->
+                        <div class="card chart-card">
+                            <div class="card-header">
+                                <i data-lucide="pie-chart" class="card-icon"></i>
+                                <h2>Spending Breakdown</h2>
+                            </div>
+                            <div class="card-body chart-body">
+                                <canvas id="spend-chart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Row 3: Flags / Anomalies Log -->
+                    <div class="card anomalies-card" id="anomalies-section">
+                        <div class="card-header bg-danger-light">
+                            <div class="header-left">
+                                <i data-lucide="alert-triangle" class="card-icon text-danger"></i>
+                                <h2>Flagged Anomalies & Statistical Outliers</h2>
+                            </div>
+                            <span class="badge badge-danger" id="anomalies-count-badge">0 Flagged</span>
+                        </div>
+                        <div class="card-body scrollable-y max-height-300">
+                            <table class="data-table" id="anomalies-table">
+                                <thead>
+                                    <tr>
+                                        <th>Account</th>
+                                        <th>Merchant</th>
+                                        <th>Amount</th>
+                                        <th>Currency</th>
+                                        <th>Flag Details & Statistical Reason</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Dynamic rows -->
+                                </tbody>
+                            </table>
+                            <div id="no-anomalies-msg" class="empty-state hidden">
+                                <i data-lucide="check-circle" class="text-success large-icon"></i>
+                                <p>No anomalies detected in this dataset!</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Row 4: Cleaned Dataset Table -->
+                    <div class="card dataset-card">
+                        <div class="card-header">
+                            <div class="header-left">
+                                <i data-lucide="database" class="card-icon"></i>
+                                <h2>Cleaned Transaction Dataset</h2>
+                            </div>
+                        </div>
+                        <div class="card-body scrollable-y max-height-400">
+                            <table class="data-table" id="cleaned-table">
+                                <thead>
+                                    <tr>
+                                        <th>Txn ID</th>
+                                        <th>Date</th>
+                                        <th>Merchant</th>
+                                        <th>Amount</th>
+                                        <th>Currency</th>
+                                        <th>Status</th>
+                                        <th>Account ID</th>
+                                        <th>Category</th>
+                                        <th>Source</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Dynamic rows -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Script imports -->
+    <script src="/static/app.js"></script>
+</body>
+</html>
